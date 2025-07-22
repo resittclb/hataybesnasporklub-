@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hatay Besna Kayıt / Mesaj</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 20px; color: #001f54; font-weight: 700; }
+  header { background: #ff6b00; color: #fff; text-align: center; padding: 20px; font-size: 2rem; user-select: none; }
+  #loginScreen, main { max-width: 400px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 12px; }
+  label, select, input, button { display: block; width: 100%; margin-top: 15px; font-weight: 700; }
+  select, input { padding: 10px; font-size: 1rem; border: 2px solid #ccc; border-radius: 10px; color: #001f54; }
+  button { background: #001f54; color: white; border: none; padding: 15px; font-size: 1.1rem; border-radius: 12px; cursor: pointer; margin-top: 25px; }
+  button:hover { background: #003080; }
+  .hidden { display: none; }
+  .welcome-message { font-size: 1.5rem; margin-bottom: 20px; text-align: center; }
+  .results { margin-top: 20px; }
+  .card { background: #ff6b00; color: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; }
+  textarea { width: 100%; min-height: 120px; margin-top: 15px; padding: 10px; font-weight: 700; border-radius: 10px; border: 2px solid #ccc; resize: vertical; }
+</style>
+</head>
+<body>
+<header>HATAY BESNA SPOR KULÜBÜ OYUNCU KAYIT / MESAJ YARATICI SİSTEMİ</header>
+
+<div id="loginScreen">
+  <label for="userSelect">Kim Kullanıyor?</label>
+  <select id="userSelect" required>
+    <option value="" disabled selected>Seçiniz</option>
+    <option>Ömer Bes</option>
+    <option>Mustafa Naimoğlu</option>
+  </select>
+  <button id="loginBtn">Giriş Yap</button>
+</div>
+
+<main id="mainContent" class="hidden">
+  <div class="welcome-message" id="welcomeMessage"></div>
+
+  <form id="registerForm">
+    <label>Ad</label>
+    <input type="text" id="ad" required placeholder="Öğrencinin adı" />
+    <label>Soyad</label>
+    <input type="text" id="soyad" required placeholder="Öğrencinin soyadı" />
+    <label>Doğum Tarihi</label>
+    <input type="date" id="dogumTarihi" required />
+    <label>Cinsiyet</label>
+    <select id="cinsiyet" required>
+      <option value="" disabled selected>Seçiniz</option>
+      <option>Erkek</option>
+      <option>Kız</option>
+    </select>
+    <label>Telefon</label>
+    <input type="tel" id="telefon" required placeholder="5xx xxx xx xx" />
+    <label>Veli Adı</label>
+    <input type="text" id="veliAd" required placeholder="Velinin adı" />
+    <label>Veli Telefonu</label>
+    <input type="tel" id="veliTelefon" required placeholder="5xx xxx xx xx" />
+    <label>Branş</label>
+    <select id="brans" required>
+      <option value="" disabled selected>Seçiniz</option>
+      <option>Basketbol</option>
+      <option>Voleybol</option>
+    </select>
+    <label>Kilo (kg)</label>
+    <input type="number" id="kilo" min="10" max="200" required placeholder="Kilo" />
+    <label>Boy (cm)</label>
+    <input type="number" id="boy" min="50" max="250" required placeholder="Boy" />
+    <button type="submit">Kaydet</button>
+  </form>
+
+  <label for="searchInput" style="margin-top:30px;">Öğrenci Ara (Ad veya Soyad)</label>
+  <input type="text" id="searchInput" placeholder="Arama..." />
+
+  <div class="results" id="results"></div>
+
+  <section style="margin-top:30px;">
+    <h3>Otomatik Mesaj Üretici</h3>
+    <label for="startTime">Başlangıç Saati (4. Grup):</label>
+    <input type="time" id="startTime" value="15:00" step="3600" min="00:00" max="23:00" />
+    <button id="generateMessageBtn">Mesajı Oluştur</button>
+    <textarea id="generatedMessage" readonly placeholder="Mesaj burada görünecek..."></textarea>
+  </section>
+</main>
+
+<script>
+  const loginScreen = document.getElementById('loginScreen');
+  const mainContent = document.getElementById('mainContent');
+  const loginBtn = document.getElementById('loginBtn');
+  const userSelect = document.getElementById('userSelect');
+  const welcomeMessage = document.getElementById('welcomeMessage');
+
+  const form = document.getElementById('registerForm');
+  const results = document.getElementById('results');
+  const searchInput = document.getElementById('searchInput');
+  const generateMessageBtn = document.getElementById('generateMessageBtn');
+  const generatedMessage = document.getElementById('generatedMessage');
+  const startTimeInput = document.getElementById('startTime');
+
+  // LocalStorage'dan yükle veya boş dizi
+  let students = JSON.parse(localStorage.getItem('students')) || [];
+
+  // Giriş
+  loginBtn.addEventListener('click', () => {
+    if (!userSelect.value) {
+      alert('Lütfen kullanıcı seçiniz.');
+      return;
+    }
+    loginScreen.classList.add('hidden');
+    mainContent.classList.remove('hidden');
+    welcomeMessage.textContent = `Hoşgeldin ${userSelect.value}!`;
+    updateResults('');
+  });
+
+  // Öğrenci kaydetme ve localStorage'a yazma
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const student = {
+      ad: form.ad.value.trim(),
+      soyad: form.soyad.value.trim(),
+      dogumTarihi: form.dogumTarihi.value,
+      cinsiyet: form.cinsiyet.value,
+      telefon: form.telefon.value.trim(),
+      veliAd: form.veliAd.value.trim(),
+      veliTelefon: form.veliTelefon.value.trim(),
+      brans: form.brans.value,
+      kilo: form.kilo.value,
+      boy: form.boy.value,
+    };
+    students.push(student);
+    localStorage.setItem('students', JSON.stringify(students));
+    alert(`${student.ad} ${student.soyad} kaydedildi!`);
+    form.reset();
+    updateResults(searchInput.value.trim());
+  });
+
+  // Arama
+  searchInput.addEventListener('input', () => {
+    updateResults(searchInput.value.trim());
+  });
+
+  // Sonuçları göster
+  function updateResults(query) {
+    const q = query.toLowerCase();
+    const filtered = students.filter(s =>
+      s.ad.toLowerCase().includes(q) || s.soyad.toLowerCase().includes(q)
+    );
+    results.innerHTML = '';
+    if (filtered.length === 0) {
+      results.innerHTML = '<p style="font-weight:700;color:#ff6b00;text-align:center;">Kayıt bulunamadı.</p>';
+      return;
+    }
+    filtered.forEach(s => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <b>${s.ad} ${s.soyad}</b><br>
+        Doğum: ${s.dogumTarihi}<br>
+        Cinsiyet: ${s.cinsiyet}<br>
+        Telefon: ${s.telefon}<br>
+        Veli: ${s.veliAd} - ${s.veliTelefon}<br>
+        Branş: ${s.brans}<br>
+        Kilo: ${s.kilo} kg<br>
+        Boy: ${s.boy} cm
+      `;
+      results.appendChild(card);
+    });
+  }
+
+  // Mesaj oluşturucu
+  generateMessageBtn.addEventListener('click', () => {
+    if (students.length === 0) {
+      alert('Lütfen önce en az bir öğrenci kaydedin.');
+      return;
+    }
+    let start = startTimeInput.value;
+    if (!start) start = '15:00';
+    const [hourStr, minStr] = start.split(':');
+    let hour = parseInt(hourStr, 10);
+
+    const groups = ['4. Grup', '3. Grup', '2. Grup', '1. Grup'];
+    let msg = 'Bu haftaki basketbol antrenman programı\nEksik katılım, hem spor disiplinine hem de takım bütünlüğüne zarar vermektedir. Lütfen bu konuda gereken hassasiyeti gösteriniz.\n\n📅 Antrenman Günleri:\nSalı – Perşembe\n\n🕒 Antrenman Saatleri:\n';
+
+    groups.forEach((g, i) => {
+      let displayHour = (hour + i) % 24;
+      const displayMin = minStr.padStart(2,'0');
+      msg += `- ${g}: ${displayHour.toString().padStart(2,'0')}:${displayMin}\n`;
+    });
+
+    msg += '\n📌 DİKKAT EDİLMESİ GEREKENLER:\n- Antrenmanlara zamanında ve eksiksiz katılım beklenmektedir.\n- Her sporcunun yanında mutlaka:\n  ✔ Temiz spor ayakkabısı\n  ✔ Su matarası\n  ✔ Küçük havlu\nbulundurması zorunludur.\n\n🎯 Hatay Besna Spor Kulübü olarak disiplin ve devamlılık konusunda taviz vermiyoruz.\nÇocuklarımızın gelişimi için siz değerli velilerimizin desteği vazgeçilmezdir.\n\nTeşekkür ederiz.';
+    generatedMessage.value = msg;
+  });
+
+  // Sayfa açılırken kayıtlı öğrencileri listele
+  window.addEventListener('load', () => {
+    if (students.length > 0) {
+      updateResults('');
+    }
+  });
+</script>
+</body>
+</html>
